@@ -137,12 +137,21 @@ const InventoryPage: React.FC = () => {
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
+                <Select
                   value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  required
-                />
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Electronics">Electronics</SelectItem>
+                    <SelectItem value="Apparel">Apparel</SelectItem>
+                    <SelectItem value="Food">Food</SelectItem>
+                    <SelectItem value="Beverages">Beverages</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -346,12 +355,21 @@ const InventoryPage: React.FC = () => {
             </div>
             <div>
               <Label htmlFor="edit-category">Category</Label>
-              <Input
-                id="edit-category"
+              <Select
                 value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
-                required
-              />
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Electronics">Electronics</SelectItem>
+                  <SelectItem value="Apparel">Apparel</SelectItem>
+                  <SelectItem value="Food">Food</SelectItem>
+                  <SelectItem value="Beverages">Beverages</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
