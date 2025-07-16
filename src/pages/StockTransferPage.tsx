@@ -33,9 +33,14 @@ const StockTransferPage: React.FC = () => {
     if (!selectedProduct) return;
 
     addStockTransfer({
-      ...formData,
-      productName: selectedProduct.name,
-      transferredBy: currentUser?.username || 'Unknown'
+      receiver_name: formData.receiverName,
+      product_id: formData.productId,
+      product_name: selectedProduct.name,
+      quantity: formData.quantity,
+      date: formData.date,
+      status: formData.status,
+      notes: formData.notes,
+      transferred_by: currentUser?.username || 'Unknown'
     });
 
     // Reset form

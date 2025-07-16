@@ -25,9 +25,13 @@ const StockReceivePage: React.FC = () => {
     if (!selectedProduct) return;
 
     addStockReceipt({
-      ...formData,
-      productName: selectedProduct.name,
-      receivedBy: currentUser?.username || 'Unknown'
+      supplier_name: formData.supplierName,
+      product_id: formData.productId,
+      product_name: selectedProduct.name,
+      quantity: formData.quantity,
+      date: formData.date,
+      notes: formData.notes,
+      received_by: currentUser?.username || 'Unknown'
     });
 
     // Reset form

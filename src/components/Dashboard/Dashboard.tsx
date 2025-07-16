@@ -116,9 +116,9 @@ export const Dashboard: React.FC = () => {
                       <ArrowDownToLine className="h-4 w-4 text-success" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">{receipt.productName}</p>
+                      <p className="text-sm font-medium text-foreground">{receipt.product_name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {receipt.quantity} units from {receipt.supplierName}
+                        {receipt.quantity} units from {receipt.supplier_name}
                       </p>
                     </div>
                   </div>
@@ -152,9 +152,9 @@ export const Dashboard: React.FC = () => {
                       <TruckIcon className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">{transfer.productName}</p>
+                      <p className="text-sm font-medium text-foreground">{transfer.product_name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {transfer.quantity} units to {transfer.receiverName}
+                        {transfer.quantity} units to {transfer.receiver_name}
                       </p>
                     </div>
                   </div>

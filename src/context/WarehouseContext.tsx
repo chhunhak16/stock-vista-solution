@@ -1,41 +1,47 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { useSupabase, Product as SupabaseProduct, Supplier as SupabaseSupplier, StockReceipt as SupabaseStockReceipt, StockTransfer as SupabaseStockTransfer } from '@/hooks/useSupabase';
 
-// Types
+// Types - Updated to match Supabase schema
 export interface Product {
   id: string;
   name: string;
-  sku: string;
-  category: string;
+  sku?: string;
+  category?: string;
   quantity: number;
-  stockAlert: number;
+  stock_alert: number;
   unit: string;
-  supplier: string;
-  createdDate: string;
-  updatedDate: string;
+  supplier_id?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface StockReceipt {
   id: string;
-  supplierName: string;
-  productId: string;
-  productName: string;
+  supplier_name: string;
+  product_id: string;
+  product_name: string;
   quantity: number;
   date: string;
-  notes: string;
-  receivedBy: string;
+  notes?: string;
+  received_by?: string;
+  supplier_id?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface StockTransfer {
   id: string;
-  receiverName: string;
-  productId: string;
-  productName: string;
+  receiver_name: string;
+  product_id: string;
+  product_name: string;
   quantity: number;
   date: string;
-  status: 'pending' | 'completed' | 'cancelled';
-  notes: string;
-  transferredBy: string;
+  status: 'pending' | 'in_transit' | 'completed' | 'cancelled';
+  notes?: string;
+  transferred_by?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface User {
@@ -43,18 +49,22 @@ export interface User {
   username: string;
   email: string;
   role: 'admin' | 'manager' | 'staff' | 'viewer';
-  permissions: string[];
-  createdDate: string;
-  lastLogin: string;
+  permissions?: string[];
+  created_at: string;
+  user_id: string;
+  last_login?: string;
+  updated_at: string;
 }
 
 export interface Supplier {
   id: string;
   name: string;
-  contact: string;
-  email: string;
-  phone: string;
-  address: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface WarehouseContextType {
@@ -65,35 +75,36 @@ interface WarehouseContextType {
   users: User[];
   suppliers: Supplier[];
   currentUser: User | null;
+  loading: boolean;
   
   // Products
-  addProduct: (product: Omit<Product, 'id' | 'createdDate' | 'updatedDate'>) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (product: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   getProduct: (id: string) => Product | undefined;
   getLowStockProducts: () => Product[];
   
   // Stock Receipts
-  addStockReceipt: (receipt: Omit<StockReceipt, 'id'>) => void;
+  addStockReceipt: (receipt: Omit<StockReceipt, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   getStockReceipts: () => StockReceipt[];
   
   // Stock Transfers
-  addStockTransfer: (transfer: Omit<StockTransfer, 'id'>) => void;
-  updateTransferStatus: (id: string, status: StockTransfer['status']) => void;
+  addStockTransfer: (transfer: Omit<StockTransfer, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateTransferStatus: (id: string, status: StockTransfer['status']) => Promise<void>;
   getStockTransfers: () => StockTransfer[];
   
   // Users
-  addUser: (user: Omit<User, 'id' | 'createdDate' | 'lastLogin'>) => void;
+  addUser: (user: Omit<User, 'id' | 'created_at' | 'updated_at'>) => void;
   updateUser: (id: string, user: Partial<User>) => void;
   deleteUser: (id: string) => void;
   
   // Suppliers
-  addSupplier: (supplier: Omit<Supplier, 'id'>) => void;
+  addSupplier: (supplier: Omit<Supplier, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   updateSupplier: (id: string, supplier: Partial<Supplier>) => void;
   deleteSupplier: (id: string) => void;
   
   // Utilities
-  generateId: () => string;
+  refreshData: () => Promise<void>;
 }
 
 const WarehouseContext = createContext<WarehouseContextType | undefined>(undefined);
@@ -106,122 +117,7 @@ export const useWarehouse = () => {
   return context;
 };
 
-// Sample data
-const sampleProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Industrial Bearings',
-    sku: 'IB-001',
-    category: 'Machinery Parts',
-    quantity: 150,
-    stockAlert: 50,
-    unit: 'pieces',
-    supplier: 'TechParts Ltd',
-    createdDate: '2024-01-15',
-    updatedDate: '2024-07-16'
-  },
-  {
-    id: '2',
-    name: 'Steel Pipes (2m)',
-    sku: 'SP-002',
-    category: 'Construction',
-    quantity: 25,
-    stockAlert: 30,
-    unit: 'pieces',
-    supplier: 'Steel Works Inc',
-    createdDate: '2024-02-10',
-    updatedDate: '2024-07-16'
-  },
-  {
-    id: '3',
-    name: 'Safety Helmets',
-    sku: 'SH-003',
-    category: 'Safety Equipment',
-    quantity: 75,
-    stockAlert: 20,
-    unit: 'pieces',
-    supplier: 'Safety First Corp',
-    createdDate: '2024-03-05',
-    updatedDate: '2024-07-16'
-  },
-  {
-    id: '4',
-    name: 'Hydraulic Oil (5L)',
-    sku: 'HO-004',
-    category: 'Fluids',
-    quantity: 12,
-    stockAlert: 15,
-    unit: 'bottles',
-    supplier: 'Industrial Fluids Co',
-    createdDate: '2024-04-12',
-    updatedDate: '2024-07-16'
-  }
-];
-
-const sampleSuppliers: Supplier[] = [
-  {
-    id: '1',
-    name: 'TechParts Ltd',
-    contact: 'John Smith',
-    email: 'orders@techparts.com',
-    phone: '+1-555-0123',
-    address: '123 Industrial Blvd, Tech City'
-  },
-  {
-    id: '2',
-    name: 'Steel Works Inc',
-    contact: 'Maria Garcia',
-    email: 'sales@steelworks.com',
-    phone: '+1-555-0456',
-    address: '456 Steel Avenue, Metal Town'
-  },
-  {
-    id: '3',
-    name: 'Safety First Corp',
-    contact: 'David Wilson',
-    email: 'info@safetyfirst.com',
-    phone: '+1-555-0789',
-    address: '789 Safety Street, Guard City'
-  },
-  {
-    id: '4',
-    name: 'Industrial Fluids Co',
-    contact: 'Sarah Brown',
-    email: 'orders@industrialfluids.com',
-    phone: '+1-555-0321',
-    address: '321 Fluid Lane, Liquid Valley'
-  }
-];
-
-const sampleUsers: User[] = [
-  {
-    id: '1',
-    username: 'admin',
-    email: 'admin@warehouse.com',
-    role: 'admin',
-    permissions: ['all'],
-    createdDate: '2024-01-01',
-    lastLogin: '2024-07-16'
-  },
-  {
-    id: '2',
-    username: 'manager1',
-    email: 'manager@warehouse.com',
-    role: 'manager',
-    permissions: ['inventory', 'reports', 'users'],
-    createdDate: '2024-01-15',
-    lastLogin: '2024-07-15'
-  },
-  {
-    id: '3',
-    username: 'staff1',
-    email: 'staff@warehouse.com',
-    role: 'staff',
-    permissions: ['inventory', 'stock_receive', 'stock_transfer'],
-    createdDate: '2024-02-01',
-    lastLogin: '2024-07-16'
-  }
-];
+// Remove sample data as we're using Supabase now
 
 export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // State
@@ -231,132 +127,88 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [users, setUsers] = useState<User[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  
+  // Supabase hook
+  const supabaseHook = useSupabase();
 
-  // Load data from localStorage on mount
+  // Load data from Supabase on mount
   useEffect(() => {
-    const savedProducts = localStorage.getItem('warehouse_products');
-    const savedReceipts = localStorage.getItem('warehouse_receipts');
-    const savedTransfers = localStorage.getItem('warehouse_transfers');
-    const savedUsers = localStorage.getItem('warehouse_users');
-    const savedSuppliers = localStorage.getItem('warehouse_suppliers');
-
-    if (savedProducts) {
-      setProducts(JSON.parse(savedProducts));
-    } else {
-      setProducts(sampleProducts);
-    }
-
-    if (savedReceipts) {
-      setStockReceipts(JSON.parse(savedReceipts));
-    }
-
-    if (savedTransfers) {
-      setStockTransfers(JSON.parse(savedTransfers));
-    }
-
-    if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
-    } else {
-      setUsers(sampleUsers);
-    }
-
-    if (savedSuppliers) {
-      setSuppliers(JSON.parse(savedSuppliers));
-    } else {
-      setSuppliers(sampleSuppliers);
-    }
-
-    // Set current user (demo purposes)
-    setCurrentUser(sampleUsers[0]);
+    refreshData();
   }, []);
 
-  // Save to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem('warehouse_products', JSON.stringify(products));
-  }, [products]);
+  const refreshData = async () => {
+    const [productsData, suppliersData, receiptsData, transfersData] = await Promise.all([
+      supabaseHook.fetchProducts(),
+      supabaseHook.fetchSuppliers(),
+      supabaseHook.fetchStockReceipts(),
+      supabaseHook.fetchStockTransfers()
+    ]);
 
-  useEffect(() => {
-    localStorage.setItem('warehouse_receipts', JSON.stringify(stockReceipts));
-  }, [stockReceipts]);
+    setProducts(productsData);
+    setSuppliers(suppliersData);
+    setStockReceipts(receiptsData);
+    setStockTransfers(transfersData);
+    
+    // Set demo user for now
+    setCurrentUser({
+      id: '1',
+      username: 'admin',
+      email: 'admin@warehouse.com',
+      role: 'admin',
+      permissions: ['all'],
+      created_at: '2024-01-01',
+      updated_at: '2024-01-01',
+      user_id: '1',
+      last_login: '2024-07-16'
+    });
+  };
 
-  useEffect(() => {
-    localStorage.setItem('warehouse_transfers', JSON.stringify(stockTransfers));
-  }, [stockTransfers]);
-
-  useEffect(() => {
-    localStorage.setItem('warehouse_users', JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    localStorage.setItem('warehouse_suppliers', JSON.stringify(suppliers));
-  }, [suppliers]);
-
-  const generateId = () => Date.now().toString();
+  // Remove localStorage effects as we're using Supabase now
 
   // Product functions
-  const addProduct = (productData: Omit<Product, 'id' | 'createdDate' | 'updatedDate'>) => {
-    const newProduct: Product = {
-      ...productData,
-      id: generateId(),
-      createdDate: new Date().toISOString().split('T')[0],
-      updatedDate: new Date().toISOString().split('T')[0]
-    };
-    setProducts(prev => [...prev, newProduct]);
-    toast({
-      title: "Product Added",
-      description: `${newProduct.name} has been added to inventory.`
-    });
+  const addProduct = async (productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => {
+    const result = await supabaseHook.addProduct(productData);
+    if (result) {
+      setProducts(prev => [...prev, result]);
+    }
   };
 
-  const updateProduct = (id: string, updates: Partial<Product>) => {
-    setProducts(prev => prev.map(product => 
-      product.id === id 
-        ? { ...product, ...updates, updatedDate: new Date().toISOString().split('T')[0] }
-        : product
-    ));
-    toast({
-      title: "Product Updated",
-      description: "Product information has been updated."
-    });
+  const updateProduct = async (id: string, updates: Partial<Product>) => {
+    const result = await supabaseHook.updateProduct(id, updates);
+    if (result) {
+      setProducts(prev => prev.map(product => 
+        product.id === id ? result : product
+      ));
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    const product = products.find(p => p.id === id);
-    setProducts(prev => prev.filter(p => p.id !== id));
-    toast({
-      title: "Product Deleted",
-      description: `${product?.name || 'Product'} has been removed from inventory.`
-    });
+  const deleteProduct = async (id: string) => {
+    const success = await supabaseHook.deleteProduct(id);
+    if (success) {
+      setProducts(prev => prev.filter(p => p.id !== id));
+    }
   };
 
   const getProduct = (id: string) => products.find(p => p.id === id);
 
-  const getLowStockProducts = () => products.filter(p => p.quantity <= p.stockAlert);
+  const getLowStockProducts = () => products.filter(p => p.quantity <= p.stock_alert);
 
   // Stock Receipt functions
-  const addStockReceipt = (receiptData: Omit<StockReceipt, 'id'>) => {
-    const newReceipt: StockReceipt = {
-      ...receiptData,
-      id: generateId()
-    };
-    setStockReceipts(prev => [...prev, newReceipt]);
-    
-    // Update product quantity
-    updateProduct(receiptData.productId, {
-      quantity: (getProduct(receiptData.productId)?.quantity || 0) + receiptData.quantity
-    });
-    
-    toast({
-      title: "Stock Received",
-      description: `${receiptData.quantity} ${receiptData.productName} received from ${receiptData.supplierName}.`
-    });
+  const addStockReceipt = async (receiptData: Omit<StockReceipt, 'id' | 'created_at' | 'updated_at'>) => {
+    const result = await supabaseHook.addStockReceipt(receiptData);
+    if (result) {
+      setStockReceipts(prev => [...prev, result]);
+      // Refresh products to get updated quantities (handled by database triggers)
+      const updatedProducts = await supabaseHook.fetchProducts();
+      setProducts(updatedProducts);
+    }
   };
 
   const getStockReceipts = () => stockReceipts;
 
   // Stock Transfer functions
-  const addStockTransfer = (transferData: Omit<StockTransfer, 'id'>) => {
-    const product = getProduct(transferData.productId);
+  const addStockTransfer = async (transferData: Omit<StockTransfer, 'id' | 'created_at' | 'updated_at'>) => {
+    const product = getProduct(transferData.product_id);
     if (!product || product.quantity < transferData.quantity) {
       toast({
         title: "Transfer Failed",
@@ -366,57 +218,40 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return;
     }
 
-    const newTransfer: StockTransfer = {
-      ...transferData,
-      id: generateId()
-    };
-    setStockTransfers(prev => [...prev, newTransfer]);
-    
-    // Update product quantity if transfer is completed
-    if (transferData.status === 'completed') {
-      updateProduct(transferData.productId, {
-        quantity: product.quantity - transferData.quantity
-      });
-    }
-    
-    toast({
-      title: "Transfer Created",
-      description: `Transfer of ${transferData.quantity} ${transferData.productName} to ${transferData.receiverName} created.`
-    });
-  };
-
-  const updateTransferStatus = (id: string, status: StockTransfer['status']) => {
-    const transfer = stockTransfers.find(t => t.id === id);
-    if (!transfer) return;
-
-    if (status === 'completed' && transfer.status !== 'completed') {
-      const product = getProduct(transfer.productId);
-      if (product) {
-        updateProduct(transfer.productId, {
-          quantity: product.quantity - transfer.quantity
-        });
+    const result = await supabaseHook.addStockTransfer(transferData);
+    if (result) {
+      setStockTransfers(prev => [...prev, result]);
+      // Refresh products to get updated quantities if transfer was completed
+      if (transferData.status === 'completed') {
+        const updatedProducts = await supabaseHook.fetchProducts();
+        setProducts(updatedProducts);
       }
     }
+  };
 
-    setStockTransfers(prev => prev.map(t => 
-      t.id === id ? { ...t, status } : t
-    ));
-    
-    toast({
-      title: "Transfer Updated",
-      description: `Transfer status updated to ${status}.`
-    });
+  const updateTransferStatus = async (id: string, status: StockTransfer['status']) => {
+    const result = await supabaseHook.updateStockTransfer(id, { status });
+    if (result) {
+      setStockTransfers(prev => prev.map(t => 
+        t.id === id ? result : t
+      ));
+      // Refresh products to get updated quantities if status changed to completed
+      if (status === 'completed') {
+        const updatedProducts = await supabaseHook.fetchProducts();
+        setProducts(updatedProducts);
+      }
+    }
   };
 
   const getStockTransfers = () => stockTransfers;
 
-  // User functions
-  const addUser = (userData: Omit<User, 'id' | 'createdDate' | 'lastLogin'>) => {
+  // User functions (keeping simple for now, can add Supabase later)
+  const addUser = (userData: Omit<User, 'id' | 'created_at' | 'updated_at'>) => {
     const newUser: User = {
       ...userData,
-      id: generateId(),
-      createdDate: new Date().toISOString().split('T')[0],
-      lastLogin: 'Never'
+      id: Date.now().toString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     setUsers(prev => [...prev, newUser]);
     toast({
@@ -445,16 +280,11 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   // Supplier functions
-  const addSupplier = (supplierData: Omit<Supplier, 'id'>) => {
-    const newSupplier: Supplier = {
-      ...supplierData,
-      id: generateId()
-    };
-    setSuppliers(prev => [...prev, newSupplier]);
-    toast({
-      title: "Supplier Added",
-      description: `${newSupplier.name} has been added to suppliers.`
-    });
+  const addSupplier = async (supplierData: Omit<Supplier, 'id' | 'created_at' | 'updated_at'>) => {
+    const result = await supabaseHook.addSupplier(supplierData);
+    if (result) {
+      setSuppliers(prev => [...prev, result]);
+    }
   };
 
   const updateSupplier = (id: string, updates: Partial<Supplier>) => {
@@ -484,6 +314,7 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     users,
     suppliers,
     currentUser,
+    loading: supabaseHook.loading,
     
     // Products
     addProduct,
@@ -512,7 +343,7 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     deleteSupplier,
     
     // Utilities
-    generateId
+    refreshData
   };
 
   return (

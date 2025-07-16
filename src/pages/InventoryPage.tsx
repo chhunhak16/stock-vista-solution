@@ -20,9 +20,9 @@ interface ProductFormData {
   sku: string;
   category: string;
   quantity: number;
-  stockAlert: number;
+  stock_alert: number;
   unit: string;
-  supplier: string;
+  supplier_id: string;
 }
 
 const InventoryPage: React.FC = () => {
@@ -36,9 +36,9 @@ const InventoryPage: React.FC = () => {
     sku: '',
     category: '',
     quantity: 0,
-    stockAlert: 0,
+    stock_alert: 0,
     unit: 'pieces',
-    supplier: ''
+    supplier_id: ''
   });
 
   // Get unique categories
@@ -47,7 +47,7 @@ const InventoryPage: React.FC = () => {
   // Filter products
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+                         (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -70,21 +70,21 @@ const InventoryPage: React.FC = () => {
       sku: '',
       category: '',
       quantity: 0,
-      stockAlert: 0,
+      stock_alert: 0,
       unit: 'pieces',
-      supplier: ''
+      supplier_id: ''
     });
   };
 
   const handleEdit = (product: Product) => {
     setFormData({
       name: product.name,
-      sku: product.sku,
-      category: product.category,
+      sku: product.sku || '',
+      category: product.category || '',
       quantity: product.quantity,
-      stockAlert: product.stockAlert,
+      stock_alert: product.stock_alert,
       unit: product.unit,
-      supplier: product.supplier
+      supplier_id: product.supplier_id || ''
     });
     setEditingProduct(product);
   };
@@ -156,12 +156,12 @@ const InventoryPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="stockAlert">Stock Alert</Label>
+                  <Label htmlFor="stock_alert">Stock Alert</Label>
                   <Input
-                    id="stockAlert"
+                    id="stock_alert"
                     type="number"
-                    value={formData.stockAlert}
-                    onChange={(e) => setFormData({...formData, stockAlert: parseInt(e.target.value) || 0})}
+                    value={formData.stock_alert}
+                    onChange={(e) => setFormData({...formData, stock_alert: parseInt(e.target.value) || 0})}
                     required
                   />
                 </div>
@@ -183,13 +183,13 @@ const InventoryPage: React.FC = () => {
               </div>
               <div>
                 <Label htmlFor="supplier">Supplier</Label>
-                <Select value={formData.supplier} onValueChange={(value) => setFormData({...formData, supplier: value})}>
+                <Select value={formData.supplier_id} onValueChange={(value) => setFormData({...formData, supplier_id: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select supplier" />
                   </SelectTrigger>
                   <SelectContent>
                     {suppliers.map(supplier => (
-                      <SelectItem key={supplier.id} value={supplier.name}>
+                      <SelectItem key={supplier.id} value={supplier.id}>
                         {supplier.name}
                       </SelectItem>
                     ))}
@@ -270,12 +270,12 @@ const InventoryPage: React.FC = () => {
                       <span className="text-foreground font-semibold">{product.quantity}</span>
                     </td>
                     <td className="px-6 py-4">
-                      {product.quantity <= product.stockAlert ? (
+                      {product.quantity <= product.stock_alert ? (
                         <span className="status-badge status-danger flex items-center">
                           <AlertTriangle className="h-3 w-3 mr-1" />
                           Low Stock
                         </span>
-                      ) : product.quantity <= product.stockAlert * 2 ? (
+                      ) : product.quantity <= product.stock_alert * 2 ? (
                         <span className="status-badge status-warning">
                           Running Low
                         </span>
@@ -285,7 +285,7 @@ const InventoryPage: React.FC = () => {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-foreground">{product.supplier}</td>
+                    <td className="px-6 py-4 text-foreground">{suppliers.find(s => s.id === product.supplier_id)?.name || 'N/A'}</td>
                     <td className="px-6 py-4">
                       <div className="flex space-x-2">
                         <Button
@@ -365,12 +365,12 @@ const InventoryPage: React.FC = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="edit-stockAlert">Stock Alert</Label>
+                <Label htmlFor="edit-stock_alert">Stock Alert</Label>
                 <Input
-                  id="edit-stockAlert"
+                  id="edit-stock_alert"
                   type="number"
-                  value={formData.stockAlert}
-                  onChange={(e) => setFormData({...formData, stockAlert: parseInt(e.target.value) || 0})}
+                  value={formData.stock_alert}
+                  onChange={(e) => setFormData({...formData, stock_alert: parseInt(e.target.value) || 0})}
                   required
                 />
               </div>
@@ -392,13 +392,13 @@ const InventoryPage: React.FC = () => {
             </div>
             <div>
               <Label htmlFor="edit-supplier">Supplier</Label>
-              <Select value={formData.supplier} onValueChange={(value) => setFormData({...formData, supplier: value})}>
+              <Select value={formData.supplier_id} onValueChange={(value) => setFormData({...formData, supplier_id: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select supplier" />
                 </SelectTrigger>
                 <SelectContent>
                   {suppliers.map(supplier => (
-                    <SelectItem key={supplier.id} value={supplier.name}>
+                    <SelectItem key={supplier.id} value={supplier.id}>
                       {supplier.name}
                     </SelectItem>
                   ))}
