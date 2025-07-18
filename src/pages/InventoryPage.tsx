@@ -14,6 +14,7 @@ import { useWarehouse, Product } from '@/context/WarehouseContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ProductFormData {
   name: string;
@@ -159,7 +160,7 @@ const InventoryPage: React.FC = () => {
                   <Input
                     id="quantity"
                     type="number"
-                    value={formData.quantity}
+                    value={formData.quantity || ''}
                     onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
                     required
                   />
@@ -169,7 +170,7 @@ const InventoryPage: React.FC = () => {
                   <Input
                     id="stock_alert"
                     type="number"
-                    value={formData.stock_alert}
+                    value={formData.stock_alert || ''}
                     onChange={(e) => setFormData({...formData, stock_alert: parseInt(e.target.value) || 0})}
                     required
                   />
@@ -276,7 +277,7 @@ const InventoryPage: React.FC = () => {
                     <td className="px-6 py-4 text-foreground font-mono">{product.sku}</td>
                     <td className="px-6 py-4 text-foreground">{product.category}</td>
                     <td className="px-6 py-4">
-                      <span className="text-foreground font-semibold">{product.quantity}</span>
+                      <span className="text-foreground font-semibold">{Number(product.quantity)}</span>
                     </td>
                     <td className="px-6 py-4">
                       {product.quantity <= product.stock_alert ? (
@@ -377,7 +378,7 @@ const InventoryPage: React.FC = () => {
                 <Input
                   id="edit-quantity"
                   type="number"
-                  value={formData.quantity}
+                  value={formData.quantity || ''}
                   onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
                   required
                 />
@@ -387,7 +388,7 @@ const InventoryPage: React.FC = () => {
                 <Input
                   id="edit-stock_alert"
                   type="number"
-                  value={formData.stock_alert}
+                  value={formData.stock_alert || ''}
                   onChange={(e) => setFormData({...formData, stock_alert: parseInt(e.target.value) || 0})}
                   required
                 />

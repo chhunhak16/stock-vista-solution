@@ -12,6 +12,7 @@ import {
   Boxes
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useWarehouse } from '@/context/WarehouseContext';
 
 interface SidebarItem {
   name: string;
@@ -31,6 +32,17 @@ const navigation: SidebarItem[] = [
 
 export const Sidebar: React.FC = () => {
   const location = useLocation();
+  const { currentUser } = useWarehouse();
+
+  // Define navigation based on role
+  let filteredNavigation = [];
+  if (currentUser?.role === 'admin') {
+    filteredNavigation = navigation;
+  } else if (currentUser?.role === 'staff') {
+    filteredNavigation = navigation.filter(item =>
+      item.name === 'Stock Receive' || item.name === 'Stock Transfer'
+    );
+  }
 
   return (
     <div className="flex h-full w-64 flex-col bg-card border-r border-border">
@@ -49,7 +61,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-4">
-        {navigation.map((item) => {
+        {filteredNavigation.map((item) => {
           const isActive = location.pathname === item.href;
           return (
             <NavLink

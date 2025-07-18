@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useWarehouse } from '@/context/WarehouseContext';
 
 export const Header: React.FC = () => {
-  const { getLowStockProducts } = useWarehouse();
+  const { getLowStockProducts, currentUser, logout } = useWarehouse();
   const lowStockCount = getLowStockProducts().length;
 
   return (
@@ -38,6 +38,11 @@ export const Header: React.FC = () => {
           <Button variant="ghost" size="sm">
             <User className="h-5 w-5" />
           </Button>
+          {currentUser && (
+            <Button variant="outline" size="sm" onClick={logout} className="ml-2">
+              Sign Out
+            </Button>
+          )}
         </div>
       </div>
     </header>

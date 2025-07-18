@@ -40,7 +40,7 @@ const StockTransferPage: React.FC = () => {
       date: formData.date,
       status: formData.status,
       notes: formData.notes,
-      transferred_by: currentUser?.username || 'Unknown'
+      transferred_by: currentUser?.user_id || ''
     });
 
     // Reset form
@@ -137,7 +137,7 @@ const StockTransferPage: React.FC = () => {
                       {selectedProduct.quantity} {selectedProduct.unit}
                     </p>
                   </div>
-                  {selectedProduct.quantity <= selectedProduct.stockAlert && (
+                  {selectedProduct.quantity <= selectedProduct.stock_alert && (
                     <span className="status-badge status-warning text-xs">
                       Low Stock
                     </span>
@@ -153,7 +153,7 @@ const StockTransferPage: React.FC = () => {
                 type="number"
                 min="1"
                 max={selectedProduct?.quantity || 0}
-                value={formData.quantity}
+                value={formData.quantity || ''}
                 onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
                 required
               />
@@ -230,9 +230,9 @@ const StockTransferPage: React.FC = () => {
                 <div key={transfer.id} className="p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-foreground">{transfer.productName}</h4>
+                      <h4 className="font-semibold text-foreground">{transfer.product_name}</h4>
                       <p className="text-sm text-muted-foreground">
-                        To: {transfer.receiverName}
+                        To: {transfer.receiver_name}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Quantity: {transfer.quantity}
@@ -270,7 +270,7 @@ const StockTransferPage: React.FC = () => {
                       <Calendar className="h-3 w-3 mr-1" />
                       {transfer.date}
                     </span>
-                    <span>By: {transfer.transferredBy}</span>
+                    <span>By: {transfer.transferred_by}</span>
                   </div>
                   {transfer.notes && (
                     <p className="text-xs text-muted-foreground mt-2 p-2 bg-background rounded">

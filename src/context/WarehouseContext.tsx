@@ -48,7 +48,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  role: 'admin' | 'manager' | 'staff' | 'viewer';
+  role: 'admin' | 'staff';
   permissions?: string[];
   created_at: string;
   user_id: string;
@@ -105,6 +105,8 @@ interface WarehouseContextType {
   
   // Utilities
   refreshData: () => Promise<void>;
+  login: (username: string, password: string) => boolean;
+  logout: () => void;
 }
 
 const WarehouseContext = createContext<WarehouseContextType | undefined>(undefined);
@@ -158,7 +160,7 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       permissions: ['all'],
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
-      user_id: '1',
+      user_id: '0a65fabd-2c8a-4211-b40d-b26ba08ea60d', // <-- real Supabase user UUID
       last_login: '2024-07-16'
     });
   };
@@ -306,6 +308,28 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
+  const login = (username: string, password: string) => {
+    if (username === 'admin' && password === 'admin123') {
+      setCurrentUser({
+        id: '1',
+        username: 'admin',
+        email: 'admin@warehouse.com',
+        role: 'admin',
+        permissions: ['all'],
+        created_at: '2024-01-01',
+        updated_at: '2024-01-01',
+        user_id: '1',
+        last_login: new Date().toISOString()
+      });
+      return true;
+    }
+    return false;
+  };
+
+  const logout = () => {
+    setCurrentUser(null);
+  };
+
   const value: WarehouseContextType = {
     // Data
     products,
@@ -343,7 +367,9 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     deleteSupplier,
     
     // Utilities
-    refreshData
+    refreshData,
+    login,
+    logout
   };
 
   return (

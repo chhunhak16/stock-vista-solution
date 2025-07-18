@@ -10,7 +10,7 @@ import { useWarehouse } from '@/context/WarehouseContext';
 const StockReceivePage: React.FC = () => {
   const { products, suppliers, addStockReceipt, getStockReceipts, currentUser } = useWarehouse();
   const [formData, setFormData] = useState({
-    supplierName: '',
+    supplierId: '',
     productId: '',
     quantity: 0,
     date: new Date().toISOString().split('T')[0],
@@ -18,25 +18,31 @@ const StockReceivePage: React.FC = () => {
   });
 
   const recentReceipts = getStockReceipts().slice(-10);
+  const selectedSupplier = suppliers.find(s => s.id === formData.supplierId);
   const selectedProduct = products.find(p => p.id === formData.productId);
+
+  // Only show suppliers with valid UUID ids
+  const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+  const validSuppliers = suppliers.filter(s => uuidRegex.test(s.id));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) return;
+    if (!selectedProduct || !selectedSupplier) return;
 
     addStockReceipt({
-      supplier_name: formData.supplierName,
+      supplier_name: selectedSupplier.name,
+      supplier_id: formData.supplierId,
       product_id: formData.productId,
       product_name: selectedProduct.name,
       quantity: formData.quantity,
       date: formData.date,
       notes: formData.notes,
-      received_by: currentUser?.username || 'Unknown'
+      received_by: currentUser?.user_id || ''
     });
 
     // Reset form
     setFormData({
-      supplierName: '',
+      supplierId: '',
       productId: '',
       quantity: 0,
       date: new Date().toISOString().split('T')[0],
@@ -67,13 +73,13 @@ const StockReceivePage: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="supplier">Supplier</Label>
-              <Select value={formData.supplierName} onValueChange={(value) => setFormData({...formData, supplierName: value})}>
+              <Select value={formData.supplierId} onValueChange={(value) => setFormData({...formData, supplierId: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select supplier" />
                 </SelectTrigger>
                 <SelectContent>
-                  {suppliers.map(supplier => (
-                    <SelectItem key={supplier.id} value={supplier.name}>
+                  {validSuppliers.map(supplier => (
+                    <SelectItem key={supplier.id} value={supplier.id}>
                       {supplier.name}
                     </SelectItem>
                   ))}
@@ -112,7 +118,7 @@ const StockReceivePage: React.FC = () => {
                 id="quantity"
                 type="number"
                 min="1"
-                value={formData.quantity}
+                value={formData.quantity || ''}
                 onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
                 required
               />
@@ -143,7 +149,7 @@ const StockReceivePage: React.FC = () => {
             <Button 
               type="submit" 
               className="w-full bg-gradient-success"
-              disabled={!formData.supplierName || !formData.productId || formData.quantity <= 0}
+              disabled={!formData.supplierId || !formData.productId || formData.quantity <= 0}
             >
               <Plus className="mr-2 h-4 w-4" />
               Record Receipt
@@ -166,9 +172,9 @@ const StockReceivePage: React.FC = () => {
                 <div key={receipt.id} className="p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h4 className="font-semibold text-foreground">{receipt.productName}</h4>
+                      <h4 className="font-semibold text-foreground">{receipt.product_name}</h4>
                       <p className="text-sm text-muted-foreground">
-                        From: {receipt.supplierName}
+                        From: {receipt.supplier_name}
                       </p>
                     </div>
                     <span className="status-badge status-success">
@@ -180,7 +186,7 @@ const StockReceivePage: React.FC = () => {
                       <Calendar className="h-3 w-3 mr-1" />
                       {receipt.date}
                     </span>
-                    <span>By: {receipt.receivedBy}</span>
+                    <span>By: {receipt.received_by}</span>
                   </div>
                   {receipt.notes && (
                     <p className="text-xs text-muted-foreground mt-2 p-2 bg-background rounded">

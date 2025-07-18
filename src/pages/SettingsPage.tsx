@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useWarehouse, User, Supplier } from '@/context/WarehouseContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { v4 as uuidv4 } from 'uuid';
 
 const SettingsPage: React.FC = () => {
   const { 
@@ -61,9 +62,7 @@ const SettingsPage: React.FC = () => {
 
   const rolePermissions = {
     admin: ['all'],
-    manager: ['inventory', 'reports', 'users', 'stock_receive', 'stock_transfer'],
-    staff: ['inventory', 'stock_receive', 'stock_transfer'],
-    viewer: ['inventory', 'reports']
+    staff: ['stock_receive', 'stock_transfer'],
   };
 
   const handleUserSubmit = (e: React.FormEvent) => {
@@ -77,7 +76,7 @@ const SettingsPage: React.FC = () => {
       updateUser(editingUser.id, userData);
       setEditingUser(null);
     } else {
-      addUser(userData);
+      addUser({ ...userData, user_id: uuidv4() });
       setIsUserDialogOpen(false);
     }
     resetUserForm();
@@ -127,7 +126,7 @@ const SettingsPage: React.FC = () => {
   const handleEditSupplier = (supplier: Supplier) => {
     setSupplierForm({
       name: supplier.name,
-      contact: supplier.contact,
+      contact: supplier.contact_person,
       email: supplier.email,
       phone: supplier.phone,
       address: supplier.address
@@ -231,9 +230,7 @@ const SettingsPage: React.FC = () => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="admin">Administrator</SelectItem>
-                            <SelectItem value="manager">Manager</SelectItem>
                             <SelectItem value="staff">Staff</SelectItem>
-                            <SelectItem value="viewer">Viewer</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -258,7 +255,6 @@ const SettingsPage: React.FC = () => {
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                         <span className={`status-badge ${
                           user.role === 'admin' ? 'status-success' :
-                          user.role === 'manager' ? 'status-warning' :
                           'bg-primary/10 text-primary border border-primary/20'
                         } text-xs`}>
                           {user.role}
@@ -375,7 +371,7 @@ const SettingsPage: React.FC = () => {
                         </div>
                         <div>
                           <h4 className="font-semibold text-foreground">{supplier.name}</h4>
-                          <p className="text-sm text-muted-foreground">{supplier.contact}</p>
+                          <p className="text-sm text-muted-foreground">{supplier.contact_person}</p>
                         </div>
                       </div>
                       <div className="flex space-x-1">
@@ -521,9 +517,7 @@ const SettingsPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrator</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="staff">Staff</SelectItem>
-                  <SelectItem value="viewer">Viewer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
