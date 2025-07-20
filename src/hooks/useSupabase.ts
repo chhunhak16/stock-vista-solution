@@ -281,6 +281,21 @@ export const useSupabase = () => {
     }
   };
 
+  // Auth
+  const loginWithSupabase = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      handleError(error, 'login');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     error,
@@ -299,5 +314,6 @@ export const useSupabase = () => {
     fetchStockTransfers,
     addStockTransfer,
     updateStockTransfer,
+    loginWithSupabase,
   };
 };

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { useSupabase, Product as SupabaseProduct, Supplier as SupabaseSupplier, StockReceipt as SupabaseStockReceipt, StockTransfer as SupabaseStockTransfer } from '@/hooks/useSupabase';
+import { supabase } from '@/integrations/supabase/client';
 
 // Types - Updated to match Supabase schema
 export interface Product {
@@ -54,6 +55,7 @@ export interface User {
   user_id: string;
   last_login?: string;
   updated_at: string;
+  must_set_password?: boolean;
 }
 
 export interface Supplier {
@@ -105,7 +107,7 @@ interface WarehouseContextType {
   
   // Utilities
   refreshData: () => Promise<void>;
-  login: (username: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -133,24 +135,74 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Supabase hook
   const supabaseHook = useSupabase();
 
+  // Fetch all users from Supabase profiles table
+  const fetchAllUsers = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*');
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return [];
+    }
+    return (data || []).map((profile: any) => ({
+      id: profile.id,
+      username: profile.username,
+      email: profile.email,
+      role: (profile.role === 'admin' ? 'admin' : 'staff') as User['role'],
+      permissions: profile.permissions,
+      created_at: profile.created_at,
+      updated_at: profile.updated_at,
+      user_id: profile.user_id,
+      last_login: profile.last_login,
+      must_set_password: profile.must_set_password,
+    }));
+  };
+
   // Load data from Supabase on mount
   useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && session.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        if (!profile) {
+          // No profile found, do not set currentUser
+          return;
+        }
+        setCurrentUser({
+          id: profile.id,
+          username: profile.username,
+          email: profile.email,
+          role: (profile.role === 'admin' ? 'admin' : 'staff'),
+          permissions: profile.permissions,
+          created_at: profile.created_at,
+          updated_at: profile.updated_at,
+          user_id: profile.user_id,
+          last_login: profile.last_login,
+          must_set_password: profile.must_set_password,
+        });
+      }
+    })();
     refreshData();
   }, []);
 
   const refreshData = async () => {
-    const [productsData, suppliersData, receiptsData, transfersData] = await Promise.all([
+    const [productsData, suppliersData, receiptsData, transfersData, usersData] = await Promise.all([
       supabaseHook.fetchProducts(),
       supabaseHook.fetchSuppliers(),
       supabaseHook.fetchStockReceipts(),
-      supabaseHook.fetchStockTransfers()
+      supabaseHook.fetchStockTransfers(),
+      fetchAllUsers()
     ]);
 
     setProducts(productsData);
     setSuppliers(suppliersData);
     setStockReceipts(receiptsData);
     setStockTransfers(transfersData);
-    // Removed auto-login demo user
+    setUsers(usersData);
   };
 
   // Remove localStorage effects as we're using Supabase now
@@ -235,19 +287,10 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const getStockTransfers = () => stockTransfers;
 
-  // User functions (keeping simple for now, can add Supabase later)
-  const addUser = (userData: Omit<User, 'id' | 'created_at' | 'updated_at'>) => {
-    const newUser: User = {
-      ...userData,
-      id: Date.now().toString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setUsers(prev => [...prev, newUser]);
-    toast({
-      title: "User Added",
-      description: `User ${newUser.username} has been created.`
-    });
+  // User functions
+  const addUser = async (userData: Omit<User, 'id' | 'created_at' | 'updated_at'>) => {
+    // After user is added via Supabase Auth in SettingsPage, just refresh users
+    await refreshData();
   };
 
   const updateUser = (id: string, updates: Partial<User>) => {
@@ -260,13 +303,24 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
-  const deleteUser = (id: string) => {
-    const user = users.find(u => u.id === id);
-    setUsers(prev => prev.filter(u => u.id !== id));
-    toast({
-      title: "User Deleted",
-      description: `User ${user?.username || 'User'} has been removed.`
-    });
+  const deleteUser = async (userId: string) => {
+    // Remove user from Supabase 'profiles' and Auth
+    // 1. Get the profile by id
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error || !profile) {
+      toast({ title: 'Error', description: error?.message || 'User not found', variant: 'destructive' });
+      return;
+    }
+    // 2. Delete from profiles
+    await supabase.from('profiles').delete().eq('id', userId);
+    // 3. Delete from Auth (requires service role key, so just remove from UI for now)
+    // 4. Refresh users
+    await refreshData();
+    toast({ title: 'User Deleted', description: 'User has been removed.' });
   };
 
   // Supplier functions
@@ -296,22 +350,43 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
-  const login = (username: string, password: string) => {
-    if (username === 'admin' && password === 'admin123') {
-      setCurrentUser({
-        id: '1',
-        username: 'admin',
-        email: 'admin@warehouse.com',
-        role: 'admin',
-        permissions: ['all'],
-        created_at: '2024-01-01',
-        updated_at: '2024-01-01',
-        user_id: '1',
-        last_login: new Date().toISOString()
+  const login = async (email: string, password: string) => {
+    try {
+      const data = await supabaseHook.loginWithSupabase(email, password);
+      if (data && data.user) {
+        // Fetch profile info from Supabase
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
+        if (!profile) {
+          // No profile found, do not set currentUser
+          return false;
+        }
+        setCurrentUser({
+          id: profile.id,
+          username: profile.username,
+          email: profile.email,
+          role: (profile.role === 'admin' ? 'admin' : 'staff'),
+          permissions: profile.permissions,
+          created_at: profile.created_at,
+          updated_at: profile.updated_at,
+          user_id: profile.user_id,
+          last_login: profile.last_login,
+          must_set_password: profile.must_set_password,
+        });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid email or password.",
+        variant: "destructive"
       });
-      return true;
+      return false;
     }
-    return false;
   };
 
   const logout = () => {

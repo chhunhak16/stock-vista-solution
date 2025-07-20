@@ -195,3 +195,49 @@
     @apply animate-pulse border-l-4 border-warning bg-warning/5 p-4;
   }
 }
+
+.animated-gradient-bg {
+  background: linear-gradient(-45deg, #4158D0, #C850C0, #FFCC70, #FF6A88);
+  background-size: 400% 400%;
+  animation: gradientBG 12s ease-in-out infinite;
+}
+@keyframes gradientBG {
+  0% {background-position: 0% 50%;}
+  50% {background-position: 100% 50%;}
+  100% {background-position: 0% 50%;}
+}
+.login-card-animate {
+  opacity: 0;
+  transform: scale(0.95) translateY(30px);
+  animation: cardFadeIn 1s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+}
+@keyframes cardFadeIn {
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.dashboard-animate {
+  animation: dashboardFadeIn 1s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+@keyframes dashboardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.metric-card-animate {
+  opacity: 0;
+  transform: scale(0.95) translateY(20px);
+  animation: metricCardFadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards;
+}
+@keyframes metricCardFadeIn {
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

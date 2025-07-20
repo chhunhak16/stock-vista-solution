@@ -35,8 +35,10 @@ export const Dashboard: React.FC = () => {
     r => r.date === new Date().toISOString().split('T')[0]
   ).length;
 
+  const totalExport = getStockTransfers().filter(t => t.status === 'completed').reduce((sum, t) => sum + t.quantity, 0);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 dashboard-animate">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
@@ -68,6 +70,7 @@ export const Dashboard: React.FC = () => {
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
+          className="metric-card-animate"
           title="Total Products"
           value={products.length}
           change="+2 this week"
@@ -75,6 +78,7 @@ export const Dashboard: React.FC = () => {
           icon={Package}
         />
         <MetricCard
+          className="metric-card-animate"
           title="Low Stock Items"
           value={lowStockProducts.length}
           change={lowStockProducts.length > 0 ? "Requires attention" : "All good"}
@@ -82,6 +86,7 @@ export const Dashboard: React.FC = () => {
           icon={AlertTriangle}
         />
         <MetricCard
+          className="metric-card-animate"
           title="Today's Receipts"
           value={todayReceipts}
           change="Stock received"
@@ -89,6 +94,7 @@ export const Dashboard: React.FC = () => {
           icon={ArrowDownToLine}
         />
         <MetricCard
+          className="metric-card-animate"
           title="Today's Transfers"
           value={todayTransfers}
           change="Items transferred"
@@ -202,14 +208,12 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div className="warehouse-card p-6 text-center">
-          <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center mx-auto mb-3">
-            <DollarSign className="h-6 w-6 text-white" />
+          <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mx-auto mb-3">
+            <TruckIcon className="h-6 w-6 text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground">Estimated Value</h3>
-          <p className="text-2xl font-bold text-primary mt-1">
-            ${totalValue.toLocaleString()}
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">Total inventory value</p>
+          <h3 className="text-lg font-semibold text-foreground">Total Export</h3>
+          <p className="text-2xl font-bold text-blue-500 mt-1">{totalExport}</p>
+          <p className="text-sm text-muted-foreground mt-2">Total quantity exported</p>
         </div>
       </div>
     </div>

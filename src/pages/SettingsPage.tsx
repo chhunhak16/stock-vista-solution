@@ -19,6 +19,7 @@ import {
 import { useWarehouse, User, Supplier } from '@/context/WarehouseContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/integrations/supabase/client';
 
 const SettingsPage: React.FC = () => {
   const { 
@@ -29,7 +30,8 @@ const SettingsPage: React.FC = () => {
     deleteUser,
     addSupplier,
     updateSupplier,
-    deleteSupplier
+    deleteSupplier,
+    currentUser
   } = useWarehouse();
 
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
@@ -40,6 +42,7 @@ const SettingsPage: React.FC = () => {
   const [userForm, setUserForm] = useState({
     username: '',
     email: '',
+    password: '',
     role: 'staff' as User['role'],
     permissions: [] as string[]
   });
@@ -65,21 +68,29 @@ const SettingsPage: React.FC = () => {
     staff: ['stock_receive', 'stock_transfer'],
   };
 
-  const handleUserSubmit = (e: React.FormEvent) => {
+  const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const userData = {
-      ...userForm,
-      permissions: rolePermissions[userForm.role]
-    };
-
-    if (editingUser) {
-      updateUser(editingUser.id, userData);
-      setEditingUser(null);
-    } else {
-      addUser({ ...userData, user_id: uuidv4() });
+    try {
+      // Invite user by email (use a random password, user will set their own after confirmation)
+      const tempPassword = Math.random().toString(36).slice(-10) + 'Aa1!';
+      const { data, error } = await supabase.auth.signUp({
+        email: userForm.email,
+        password: tempPassword
+      });
+      if (error) throw error;
+      // Set role and username in profiles table if user was created
+      if (data.user) {
+        await supabase
+          .from('profiles')
+          .update({ role: userForm.role, username: userForm.username, must_set_password: true })
+          .eq('user_id', data.user.id);
+      }
       setIsUserDialogOpen(false);
+      resetUserForm();
+      alert('User invited successfully! They must check their email to complete registration and set their password.');
+    } catch (err: any) {
+      alert('Failed to invite user: ' + (err.message || err.error_description || 'Unknown error'));
     }
-    resetUserForm();
   };
 
   const handleSupplierSubmit = (e: React.FormEvent) => {
@@ -98,6 +109,7 @@ const SettingsPage: React.FC = () => {
     setUserForm({
       username: '',
       email: '',
+      password: '',
       role: 'staff',
       permissions: []
     });
@@ -117,8 +129,9 @@ const SettingsPage: React.FC = () => {
     setUserForm({
       username: user.username,
       email: user.email,
+      password: '',
       role: user.role,
-      permissions: user.permissions
+      permissions: user.permissions || []
     });
     setEditingUser(user);
   };
@@ -191,55 +204,67 @@ const SettingsPage: React.FC = () => {
                   <Users className="h-5 w-5 text-primary" />
                   <span>User Management</span>
                 </CardTitle>
-                <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-gradient-primary">
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Add User
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add New User</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleUserSubmit} className="space-y-4">
-                      <div>
-                        <Label htmlFor="username">Username</Label>
-                        <Input
-                          id="username"
-                          value={userForm.username}
-                          onChange={(e) => setUserForm({...userForm, username: e.target.value})}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={userForm.email}
-                          onChange={(e) => setUserForm({...userForm, email: e.target.value})}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="role">Role</Label>
-                        <Select value={userForm.role} onValueChange={(value: User['role']) => setUserForm({...userForm, role: value})}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Administrator</SelectItem>
-                            <SelectItem value="staff">Staff</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button type="submit" className="w-full">
+                {currentUser?.role === 'admin' && (
+                  <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-gradient-primary">
+                        <UserPlus className="mr-2 h-4 w-4" />
                         Add User
                       </Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add New User</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleUserSubmit} className="space-y-4">
+                        <div>
+                          <Label htmlFor="username">Username</Label>
+                          <Input
+                            id="username"
+                            value={userForm.username}
+                            onChange={(e) => setUserForm({...userForm, username: e.target.value})}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={userForm.email}
+                            onChange={(e) => setUserForm({...userForm, email: e.target.value})}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="password">Password</Label>
+                          <Input
+                            id="password"
+                            type="password"
+                            value={userForm.password}
+                            onChange={(e) => setUserForm({...userForm, password: e.target.value})}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="role">Role</Label>
+                          <Select value={userForm.role} onValueChange={(value: User['role']) => setUserForm({...userForm, role: value})}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Administrator</SelectItem>
+                              <SelectItem value="staff">Staff</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button type="submit" className="w-full">
+                          Add User
+                        </Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </div>
             </CardHeader>
             <CardContent>
