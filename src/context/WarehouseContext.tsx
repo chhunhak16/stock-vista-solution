@@ -150,19 +150,7 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setSuppliers(suppliersData);
     setStockReceipts(receiptsData);
     setStockTransfers(transfersData);
-    
-    // Set demo user for now
-    setCurrentUser({
-      id: '1',
-      username: 'admin',
-      email: 'admin@warehouse.com',
-      role: 'admin',
-      permissions: ['all'],
-      created_at: '2024-01-01',
-      updated_at: '2024-01-01',
-      user_id: '0a65fabd-2c8a-4211-b40d-b26ba08ea60d', // <-- real Supabase user UUID
-      last_login: '2024-07-16'
-    });
+    // Removed auto-login demo user
   };
 
   // Remove localStorage effects as we're using Supabase now
