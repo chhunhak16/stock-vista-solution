@@ -150,6 +150,8 @@ const InventoryPage: React.FC = () => {
                     <SelectItem value="Apparel">Apparel</SelectItem>
                     <SelectItem value="Food">Food</SelectItem>
                     <SelectItem value="Beverages">Beverages</SelectItem>
+                    <SelectItem value="Skin Care">Skin Care</SelectItem>
+                    <SelectItem value="Clothes">Clothes</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
@@ -368,6 +370,8 @@ const InventoryPage: React.FC = () => {
                   <SelectItem value="Apparel">Apparel</SelectItem>
                   <SelectItem value="Food">Food</SelectItem>
                   <SelectItem value="Beverages">Beverages</SelectItem>
+                  <SelectItem value="Skin Care">Skin Care</SelectItem>
+                  <SelectItem value="Clothes">Clothes</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
