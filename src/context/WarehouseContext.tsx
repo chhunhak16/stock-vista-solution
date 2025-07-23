@@ -182,7 +182,7 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           updated_at: profile.updated_at,
           user_id: profile.user_id,
           last_login: profile.last_login,
-          must_set_password: profile.must_set_password,
+          must_set_password: (profile as any).must_set_password,
         });
       }
     })();
@@ -374,7 +374,7 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           updated_at: profile.updated_at,
           user_id: profile.user_id,
           last_login: profile.last_login,
-          must_set_password: profile.must_set_password,
+          must_set_password: (profile as any).must_set_password,
         });
         return true;
       }

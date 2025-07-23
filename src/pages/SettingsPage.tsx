@@ -20,6 +20,7 @@ import { useWarehouse, User, Supplier } from '@/context/WarehouseContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const SettingsPage: React.FC = () => {
   const { 
@@ -55,18 +56,29 @@ const SettingsPage: React.FC = () => {
     address: ''
   });
 
-  const [systemSettings, setSystemSettings] = useState({
-    warehouseName: 'Main Warehouse',
-    location: 'Industrial District, City',
-    defaultStockAlert: 20,
-    autoBackup: true,
-    emailNotifications: true
+  const [systemSettings, setSystemSettings] = useState(() => {
+    const saved = localStorage.getItem('warehouse_system_settings');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // fallback to default if corrupted
+      }
+    }
+    return {
+      warehouseName: 'Main Warehouse',
+      location: 'Industrial District, City',
+      autoBackup: true,
+      emailNotifications: true
+    };
   });
 
   const rolePermissions = {
     admin: ['all'],
     staff: ['stock_receive', 'stock_transfer'],
   };
+
+  const { toast } = useToast();
 
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,9 +172,11 @@ const SettingsPage: React.FC = () => {
   };
 
   const saveSystemSettings = () => {
-    // In a real app, this would save to backend
     localStorage.setItem('warehouse_system_settings', JSON.stringify(systemSettings));
-    // Show toast notification here
+    toast({
+      title: 'Settings Saved',
+      description: 'Warehouse name and location have been updated.',
+    });
   };
 
   return (
@@ -485,17 +499,7 @@ const SettingsPage: React.FC = () => {
                       onChange={(e) => setSystemSettings({...systemSettings, location: e.target.value})}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="stock-alert">Default Stock Alert Level</Label>
-                    <Input
-                      id="stock-alert"
-                      type="number"
-                      value={systemSettings.defaultStockAlert}
-                      onChange={(e) => setSystemSettings({...systemSettings, defaultStockAlert: parseInt(e.target.value) || 20})}
-                    />
-                  </div>
                 </div>
-                
                 <div className="pt-4 border-t border-border">
                   <Button onClick={saveSystemSettings} className="bg-gradient-primary">
                     <Save className="mr-2 h-4 w-4" />

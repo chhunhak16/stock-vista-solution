@@ -35,7 +35,7 @@ const SetPasswordPage: React.FC = () => {
     }
     // Update must_set_password in profiles
     if (currentUser) {
-      await supabase.from('profiles').update({ must_set_password: false }).eq('user_id', currentUser.user_id);
+      await supabase.from('profiles').update({ must_set_password: false } as any).eq('user_id', currentUser.user_id);
     }
     setSuccess('Password updated! Redirecting...');
     setTimeout(() => navigate('/'), 1500);
